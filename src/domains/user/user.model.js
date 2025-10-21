@@ -71,6 +71,8 @@ const userSchema = new mongoose.Schema(
         delete ret.password;
         delete ret.active;
         delete ret.passwordChangedAt;
+        delete ret.passwordResetExpires;
+        delete ret.passwordResetToken;
       },
     },
   },
@@ -96,8 +98,7 @@ userSchema.methods.changedPasswordAfter = function (jwtTimestamp) {
 
 // INSTANCE METHOD TO VERIFY PASSWORD
 userSchema.methods.isCorrectPassword = async function (candidatePassword) {
-  console.log('this.password: ', this.password);
-  return await bcrypt.compare(candidatePassword, this.password);
+  return  await bcrypt.compare(candidatePassword, this.password);
 };
 
 userSchema.methods.createPasswordResetToken = function () {
@@ -109,7 +110,7 @@ userSchema.methods.createPasswordResetToken = function () {
     .update(resetToken)
     .digest('hex');
 
-  // update passwordResetExpires
+  // update passwordResetExpires (Expires in )
   this.passwordResetExpires = Date.now() + 6 * 60 * 1000;
 
   // return plain token

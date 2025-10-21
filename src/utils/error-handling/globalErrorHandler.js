@@ -5,10 +5,12 @@ import { errors } from 'jose';
 
 const handleCastErrorDB = (err) => {
   const details = [{ field: err.path, value: err.value }];
-  return new AppError({
+  const appError = new AppError({
     ...errorDefinitions.VALIDATION.TYPE_MISSMATCH,
     details,
   });
+  appError.originalStack = err.stack;
+  return appError;
 };
 
 const handleDuplicateFieldsErrorDB = (err) => {
@@ -33,11 +35,11 @@ const handleValidationErrorDB = (err) => {
   });
 };
 
-const handleJWTError = (err) => {
+const handleJWTError = () => {
   return new AppError(errorDefinitions.AUTH.TOKEN_INVALID);
 };
 
-const handleJWTExpiredError = (err) => {
+const handleJWTExpiredError = () => {
   return new AppError(errorDefinitions.AUTH.TOKEN_EXPIRED);
 };
 
@@ -105,17 +107,16 @@ const globalErrorHanlder = (err, req, res, next) => {
     error = handleValidationErrorDB(error);
   if (error.code === 11000) error = handleDuplicateFieldsErrorDB(error);
 
-  if (error instanceof errors.JWTExpired) error = handleJWTExpiredError;
+  if (error instanceof errors.JWTExpired) error = handleJWTExpiredError();
   if (
     error instanceof errors.JWTInvalid ||
     error instanceof errors.JWSInvalid ||
     error instanceof errors.JWSSignatureVerificationFailed
   ) {
-    error = handleJWTError;
+    error = handleJWTError();
   }
 
-  // 4) Set error route and timestamp
-  error.route = `${req.method} ${req.originalUrl}`;
+  // 4) Set error timestamp
   error.timestamp = new Date().toISOString();
   // 5) Send Error response
   if (process.env.NODE_ENV === 'development') {

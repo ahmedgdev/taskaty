@@ -24,6 +24,7 @@ export default {
       type: 'auth_error',
       message: 'Authentication expired',
     },
+
     USER_NO_LONGER_EXIST: {
       statusCode: 401,
       code: 'USER_NO_LONGER_EXIST',
@@ -38,6 +39,12 @@ export default {
     },
   },
   VALIDATION: {
+    RESET_TOKEN_INVALID: {
+      statusCode: 400,
+      type: 'validation_error',
+      code: 'RESET_TOKEN_INVALID',
+      message: 'Password reset token is invalid or expired',
+    },
     TYPE_MISSMATCH: {
       statusCode: 400,
       type: 'validation_error',

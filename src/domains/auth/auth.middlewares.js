@@ -1,4 +1,3 @@
-import { errors } from 'jose';
 import catchAsync from '../../utils/error-handling/catchAsync.js';
 import { extractToken, verifyToken } from './token.js';
 import User from '../user/user.model.js';
@@ -13,6 +12,7 @@ export const protect = catchAsync(async (req, res, next) => {
   }
 
   // 2) VERIFY TOKEN
+  // Verification errors handled in globalErrorHandler
   const decoded = await verifyToken(token);
 
   // 3) CHECK IF USER NO LONGER EXISTS

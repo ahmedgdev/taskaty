@@ -1,9 +1,10 @@
+import crypto from 'node:crypto';
 import Email from '../../utils/email.js';
 import { AppError } from '../../utils/error-handling/AppError.js';
 import catchAsync from '../../utils/error-handling/catchAsync.js';
 import errorDefinitions from '../../utils/error-handling/errorDefinitions.js';
 import User from '../user/user.model.js';
-import { signToken } from './token.js';
+import { setJwtCookie, signToken } from './token.js';
 
 export const signup = catchAsync(async (req, res, next) => {
   // validate data using joi before here
@@ -26,9 +27,9 @@ export const signup = catchAsync(async (req, res, next) => {
 
   // Create & Send JWT Token
   const token = await signToken(newUser._id);
+  setJwtCookie(res, token);
   res.status(201).json({
     status: 'success',
-    token,
     user: newUser,
   });
 });
@@ -55,9 +56,9 @@ export const login = catchAsync(async (req, res, next) => {
 
   // GENERATE & SEND TOKEN
   const token = await signToken(user._id);
+  setJwtCookie(res, token);
   res.status(200).json({
     status: 'success',
-    token,
     user,
   });
 });
@@ -104,11 +105,59 @@ export const forgotPassword = catchAsync(async (req, res, next) => {
 });
 // RESET-PASSWORD
 export const resetPassword = catchAsync(async (req, res, next) => {
+  //----- In Zod validate req.params for resetToken &  req.body for pass & passConfirm
   // 1. Extract resetToken from url
+  const resetToken = req.params.resetToken;
   // 2. Hash the Token
+  const hashToken = crypto
+    .createHash('sha256')
+    .update(resetToken)
+    .digest('hex');
+
   // 3. Find User based on passwordResetToken & passwordResetExpires
-  // -- _remember to validate passwordConfirm in zod
-  // 4. Extract password
+  const user = await User.findOne({
+    passwordResetToken: hashToken,
+    passwordResetExpires: { $gt: Date.now() },
+  });
+
+  if (!user) {
+    return next(new AppError(errorDefinitions.VALIDATION.RESET_TOKEN_INVALID));
+  }
+  // 4. Reset Password & Update passwordChangedAt
+  user.password = req.body.password;
+  user.passwordResetExpires = undefined;
+  user.passwordResetToken = undefined;
+  await user.save({ validateModifiedOnly: true });
+
+  // 5. Log the user in
+  const token = await signToken(user._id);
+  res.status(200).json({
+    status: 'success',
+    token,
+    user,
+  });
 });
 
 // UPDATE-PASSWORD
+export const updatePassword = catchAsync(async (req, res, next) => {
+  // 1) Get User from DB & select password
+  const user = await User.findById(req.user._id).select('+password');
+  const { currentPassword, newPassword } = req.body;
+  // 2) Check If current password is correct
+
+  if (!(await user.isCorrectPassword(currentPassword))) {
+    return next(new AppError(errorDefinitions.AUTH.INVALID_CREDENTIALS));
+  }
+
+  // 3) Update password and save
+  user.password = newPassword;
+  await user.save({ validateModifiedOnly: true });
+
+  // 4) Send new access token & respond to user
+  const token = await signToken(user._id);
+  setJwtCookie(res, token);
+  res.status(200).json({
+    status: 'success',
+    user,
+  });
+});
