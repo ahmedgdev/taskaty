@@ -63,6 +63,23 @@ export const login = catchAsync(async (req, res, next) => {
   });
 });
 
+// LOGOUT
+export const logout = (req, res, next) => {
+  try {
+    res.clearCookie('jwt', {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+    });
+
+    res.status(200).json({
+      status: 'success',
+      message: 'Logged out successfully',
+    });
+  } catch (err) {
+    next(err);
+  }
+};
 // FORGOT-PASSWORD
 export const forgotPassword = catchAsync(async (req, res, next) => {
   // Get User Based On POSTed Email
@@ -105,7 +122,7 @@ export const forgotPassword = catchAsync(async (req, res, next) => {
 });
 // RESET-PASSWORD
 export const resetPassword = catchAsync(async (req, res, next) => {
-  //----- In Zod validate req.params for resetToken &  req.body for pass & passConfirm
+  //----- In validator validate req.params for resetToken &  req.body for pass & passConfirm
   // 1. Extract resetToken from url
   const resetToken = req.params.resetToken;
   // 2. Hash the Token

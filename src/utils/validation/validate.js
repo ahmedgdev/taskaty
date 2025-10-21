@@ -1,4 +1,3 @@
-import * as z from 'zod';
 import { AppError } from '../error-handling/AppError.js';
 import errorDefinitions from '../error-handling/errorDefinitions.js';
 

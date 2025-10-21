@@ -89,6 +89,12 @@ userSchema.pre('save', async function () {
   }
 });
 
+// PRE-SAVE HOOK TO HIDE INACTIVE USERS
+userSchema.pre(/^find/, function (next) {
+  this.where({ active: true });
+  next();
+});
+
 // INSTANCE METHOD TO CHECK IF PASSWORD CHANGED AFTER TOKEN ISSUED
 userSchema.methods.changedPasswordAfter = function (jwtTimestamp) {
   if (!this.passwordChangedAt) return false;
@@ -98,7 +104,7 @@ userSchema.methods.changedPasswordAfter = function (jwtTimestamp) {
 
 // INSTANCE METHOD TO VERIFY PASSWORD
 userSchema.methods.isCorrectPassword = async function (candidatePassword) {
-  return  await bcrypt.compare(candidatePassword, this.password);
+  return await bcrypt.compare(candidatePassword, this.password);
 };
 
 userSchema.methods.createPasswordResetToken = function () {
